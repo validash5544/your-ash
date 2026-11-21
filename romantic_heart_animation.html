@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOVE - ENAYAT</title>
+    <style>
+        /* Reset and Base Layout */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: radial-gradient(circle at center, #260714 0%, #120309 55%, #070104 100%);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Subtle Ambient Center Glow */
+        .ambient-glow {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 65vmin;
+            height: 65vmin;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle, rgba(255, 45, 95, 0.16) 0%, rgba(180, 15, 55, 0.05) 45%, transparent 72%);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: ambientPulse 4.5s ease-in-out infinite alternate;
+            z-index: 0;
+        }
+
+        @keyframes ambientPulse {
+            0% { transform: translate(-50%, -50%) scale(0.92); opacity: 0.7; }
+            100% { transform: translate(-50%, -50%) scale(1.12); opacity: 1; }
+        }
+
+        /* Subtle Falling Rose Petals Background Layer */
+        #petals-layer {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            pointer-events: none;
+            perspective: 900px;
+            z-index: 1;
+        }
+
+        /* Background Flowing "LOVE YOU" Texts */
+        .bg-love-you {
+            position: absolute;
+            top: -8%;
+            left: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            color: rgba(255, 130, 165, 0.85);
+            text-shadow: 0 0 10px rgba(255, 55, 110, 0.7), 0 0 20px rgba(220, 20, 60, 0.45);
+            white-space: nowrap;
+            pointer-events: none;
+            will-change: transform, opacity;
+            animation: loveYouFlow linear infinite;
+        }
+
+        @keyframes loveYouFlow {
+            0% {
+                transform: translate3d(0, -8vh, 0) rotate(var(--rot-start, -3deg));
+                opacity: 0;
+            }
+            10% {
+                opacity: var(--text-opacity, 0.65);
+            }
+            88% {
+                opacity: var(--text-opacity, 0.65);
+            }
+            100% {
+                transform: translate3d(var(--drift-x, 20px), 112vh, 0) rotate(var(--rot-end, 3deg));
+                opacity: 0;
+            }
+        }
+
+        .rose-petal-wrapper {
+            position: absolute;
+            top: -12%;
+            left: 0;
+            pointer-events: none;
+            will-change: transform, opacity;
+            animation: petalFall linear infinite;
+        }
+
+        .rose-petal-inner {
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            will-change: transform;
+            animation: petalSway3D ease-in-out infinite alternate;
+        }
+
+        .rose-petal-inner svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+            overflow: visible;
+        }
+
+        /* Continuous downward drift with gentle fade-in at top and fade-out at bottom */
+        @keyframes petalFall {
+            0% {
+                transform: translate3d(0, -10vh, 0);
+                opacity: 0;
+            }
+            10% {
+                opacity: var(--petal-opacity, 0.45);
+            }
+            82% {
+                opacity: var(--petal-opacity, 0.45);
+            }
+            100% {
+                transform: translate3d(var(--drift-x, 40px), 115vh, 0);
+                opacity: 0;
+            }
+        }
+
+        /* Organic 3D fluttering and swaying motion */
+        @keyframes petalSway3D {
+            0% {
+                transform: translateX(calc(var(--sway-amp, 24px) * -1))
+                           rotateX(var(--rx-start, 15deg))
+                           rotateY(var(--ry-start, -25deg))
+                           rotateZ(var(--rz-start, -18deg));
+            }
+            50% {
+                transform: translateX(0px)
+                           rotateX(calc(var(--rx-end, 65deg) * 0.6))
+                           rotateY(var(--ry-mid, 35deg))
+                           rotateZ(calc((var(--rz-start, -18deg) + var(--rz-end, 32deg)) * 0.5));
+            }
+            100% {
+                transform: translateX(var(--sway-amp, 24px))
+                           rotateX(var(--rx-end, 65deg))
+                           rotateY(var(--ry-end, 50deg))
+                           rotateZ(var(--rz-end, 32deg));
+            }
+        }
+
+        /* Main Stage Container */
+        #stage {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+        }
+
+        /* Heart Anchor Point (Dead Center) */
+        #heart-container {
+            position: relative;
+            width: 0;
+            height: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.8s ease;
+        }
+
+        /* Gentle heartbeat once formed */
+        #heart-container.beating {
+            animation: heartbeat 2.2s ease-in-out infinite;
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            15% { transform: scale(1.045); }
+            30% { transform: scale(0.99); }
+            45% { transform: scale(1.03); }
+            60% { transform: scale(1); }
+        }
+
+        /* Individual 'LOVE' text elements */
+        .love-word {
+            position: absolute;
+            top: 0;
+            left: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            /* Smooth cubic-bezier transition for floating into place */
+            transition: 
+                transform 2.6s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 1.8s ease-out;
+            will-change: transform, opacity;
+        }
+
+        /* Color & Glow variations for depth */
+        .love-tone-1 {
+            color: #ff4d79;
+            text-shadow: 0 0 8px rgba(255, 77, 121, 0.8), 0 0 18px rgba(255, 20, 80, 0.5);
+        }
+        .love-tone-2 {
+            color: #ff85a2;
+            text-shadow: 0 0 8px rgba(255, 133, 162, 0.8), 0 0 16px rgba(255, 100, 140, 0.4);
+        }
+        .love-tone-3 {
+            color: #ffd1dc;
+            text-shadow: 0 0 10px rgba(255, 209, 220, 0.9), 0 0 20px rgba(255, 105, 135, 0.6);
+        }
+        .love-tone-4 {
+            color: #ff2a5f;
+            text-shadow: 0 0 10px rgba(255, 42, 95, 0.9), 0 0 22px rgba(220, 20, 60, 0.6);
+        }
+
+        /* Center Name Display: ENAYAT */
+        #center-name {
+            position: absolute;
+            font-family: 'Georgia', 'Palatino Linotype', serif;
+            font-weight: bold;
+            letter-spacing: 0.22em;
+            padding-left: 0.22em; /* Optical centering for letter-spacing */
+            color: #fff5f7;
+            text-transform: uppercase;
+            text-align: center;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 10;
+            /* Initial hidden state */
+            opacity: 0;
+            transform: translateY(-8%) scale(0.65);
+            filter: blur(8px);
+            text-shadow: 
+                0 0 12px rgba(255, 255, 255, 0.9),
+                0 0 25px rgba(255, 105, 150, 0.85),
+                0 0 45px rgba(255, 30, 86, 0.75);
+            transition: 
+                opacity 1.8s ease-out,
+                transform 2.0s cubic-bezier(0.16, 1, 0.3, 1),
+                filter 1.8s ease-out;
+        }
+
+        /* Active state when name appears */
+        #center-name.visible {
+            opacity: 1;
+            transform: translateY(-8%) scale(1);
+            filter: blur(0px);
+        }
+
+        /* Subtle shimmer pulse on the name after appearing */
+        #center-name.glow-pulse {
+            animation: textGlowPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes textGlowPulse {
+            0%, 100% {
+                text-shadow: 
+                    0 0 12px rgba(255, 255, 255, 0.9),
+                    0 0 25px rgba(255, 105, 150, 0.85),
+                    0 0 45px rgba(255, 30, 86, 0.75);
+            }
+            50% {
+                text-shadow: 
+                    0 0 18px rgba(255, 255, 255, 1),
+                    0 0 35px rgba(255, 130, 170, 1),
+                    0 0 60px rgba(255, 45, 100, 0.95);
+            }
+        }
+
+        /* Floating ambient background particles */
+        .sparkle {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, #fff 0%, rgba(255, 130, 165, 0.4) 60%, transparent 100%);
+            pointer-events: none;
+            animation: floatUp linear infinite;
+            z-index: 1;
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(105vh) scale(0.5);
+                opacity: 0;
+            }
+            20% {
+                opacity: 0.7;
+            }
+            80% {
+                opacity: 0.6;
+            }
+            100% {
+                transform: translateY(-10vh) scale(1.2);
+                opacity: 0;
+            }
+        }
+
+        /* Discreet Replay Button */
+        #replay-btn {
+            position: fixed;
+            bottom: 22px;
+            right: clamp(20px, 4vw, 44px);
+            background: rgba(255, 77, 121, 0.15);
+            border: 1px solid rgba(255, 133, 162, 0.35);
+            color: #ffd1dc;
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 13px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            backdrop-filter: blur(6px);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.4s ease;
+            z-index: 20;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        #replay-btn.show {
+            opacity: 0.85;
+            pointer-events: auto;
+        }
+
+        #replay-btn:hover {
+            opacity: 1;
+            background: rgba(255, 77, 121, 0.35);
+            border-color: rgba(255, 180, 200, 0.7);
+            box-shadow: 0 0 15px rgba(255, 77, 121, 0.5);
+            transform: translateY(-2px);
+        }
+
+        #replay-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Bottom-right signature caption */
+        #ash-signature {
+            position: fixed;
+            bottom: 68px;
+            right: clamp(20px, 4vw, 44px);
+            font-family: 'Georgia', 'Palatino Linotype', 'Book Antiqua', serif;
+            font-style: italic;
+            font-size: clamp(13px, 1.7vw, 17px);
+            letter-spacing: 0.12em;
+            color: #ffe4ec;
+            text-shadow:
+                0 0 8px rgba(255, 130, 170, 0.85),
+                0 0 18px rgba(255, 45, 100, 0.6);
+            pointer-events: none;
+            z-index: 15;
+            opacity: 0;
+            transform: translateY(6px);
+            animation: signatureFadeIn 2.2s ease-out 0.8s forwards, captionGlow 4s ease-in-out 3.0s infinite alternate;
+        }
+
+        @keyframes signatureFadeIn {
+            to {
+                opacity: 0.92;
+                transform: translateY(0);
+            }
+        }
+
+        /* Top-left romantic caption */
+        #universe-caption {
+            position: fixed;
+            top: clamp(18px, 4vh, 36px);
+            left: clamp(20px, 4vw, 44px);
+            font-family: 'Georgia', 'Palatino Linotype', 'Book Antiqua', serif;
+            font-style: italic;
+            font-size: clamp(13px, 1.8vw, 18px);
+            letter-spacing: 0.14em;
+            color: #ffe4ec;
+            text-shadow:
+                0 0 8px rgba(255, 130, 170, 0.85),
+                0 0 18px rgba(255, 45, 100, 0.6);
+            pointer-events: none;
+            z-index: 15;
+            opacity: 0;
+            transform: translateY(-6px);
+            animation: captionFadeIn 2.2s ease-out 0.6s forwards, captionGlow 4s ease-in-out 2.8s infinite alternate;
+        }
+
+        @keyframes captionFadeIn {
+            to {
+                opacity: 0.92;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes captionGlow {
+            0% {
+                text-shadow:
+                    0 0 8px rgba(255, 130, 170, 0.8),
+                    0 0 18px rgba(255, 45, 100, 0.55);
+            }
+            100% {
+                text-shadow:
+                    0 0 12px rgba(255, 210, 225, 0.95),
+                    0 0 26px rgba(255, 75, 125, 0.85);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top-left romantic caption -->
+    <div id="universe-caption">A little universe for you</div>
+
+    <!-- Soft ambient background glow -->
+    <div class="ambient-glow"></div>
+
+    <!-- Dreamy Falling Rose Petals Background Layer -->
+    <div id="petals-layer" aria-hidden="true"></div>
+
+    <!-- Main Animation Stage -->
+    <div id="stage">
+        <div id="heart-container">
+            <div id="center-name">ENAYAT</div>
+        </div>
+    </div>
+
+    <!-- Replay Button -->
+    <button id="replay-btn" aria-label="Replay Animation">↻ Replay</button>
+
+    <!-- Bottom-right signature -->
+    <div id="ash-signature">Your Valid Ash</div>
+
+    <script>
+        (function() {
+            const heartContainer = document.getElementById('heart-container');
+            const centerName = document.getElementById('center-name');
+            const replayBtn = document.getElementById('replay-btn');
+            const stage = document.getElementById('stage');
+            const petalsLayer = document.getElementById('petals-layer');
+
+            // Configuration
+            const WORD_TEXT = 'LOVE';
+            let timeouts = [];
+
+            /**
+             * Creates subtle, softly falling red and crimson rose petals and gentle "LOVE YOU" texts in the background
+             */
+            function createRosePetals() {
+                petalsLayer.innerHTML = '';
+
+                // Organic curved rose petal SVG silhouettes
+                const petalPaths = [
+                    'M 50 6 C 74 4, 94 22, 92 48 C 90 72, 68 90, 50 96 C 32 90, 10 72, 8 48 C 6 22, 26 4, 50 6 Z',
+                    'M 48 5 C 76 6, 95 28, 88 55 C 82 78, 62 92, 46 95 C 28 91, 11 74, 12 46 C 13 21, 28 4, 48 5 Z',
+                    'M 50 8 C 80 3, 96 26, 91 52 C 86 76, 66 91, 50 95 C 34 91, 14 76, 9 52 C 4 26, 20 3, 50 8 Z'
+                ];
+
+                // Deep red & soft crimson color palettes
+                const palettes = [
+                    { top: '#e11d48', mid: '#9f1239', base: '#4c0519', vein: 'rgba(255, 180, 195, 0.14)' },
+                    { top: '#be123c', mid: '#881337', base: '#3f0414', vein: 'rgba(255, 160, 180, 0.12)' },
+                    { top: '#f43f5e', mid: '#be123c', base: '#58081e', vein: 'rgba(255, 205, 215, 0.15)' },
+                    { top: '#9f1239', mid: '#6b0b25', base: '#2c020d', vein: 'rgba(244, 114, 140, 0.10)' }
+                ];
+
+                const isMobile = window.innerWidth < 600;
+                const petalCount = isMobile ? 55 : 95;
+
+                for (let i = 0; i < petalCount; i++) {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'rose-petal-wrapper';
+
+                    const inner = document.createElement('div');
+                    inner.className = 'rose-petal-inner';
+
+                    const isDistant = i % 2 === 0;
+                    const size = isDistant ? (12 + Math.random() * 6) : (17 + Math.random() * 8);
+                    const opacity = isDistant ? (0.45 + Math.random() * 0.2) : (0.62 + Math.random() * 0.25);
+                    const blurPx = isDistant ? (0.8 + Math.random() * 0.7) : (0.2 + Math.random() * 0.4);
+                    const fallDuration = isDistant ? (14 + Math.random() * 7) : (10 + Math.random() * 6);
+
+                    const startLeft = Math.random() * 100;
+                    const driftX = (Math.random() - 0.5) * 120;
+                    const swayAmp = 14 + Math.random() * 24;
+                    const swayDuration = 3.8 + Math.random() * 3.0;
+                    const negativeDelay = -Math.random() * fallDuration;
+
+                    wrapper.style.left = `${startLeft}vw`;
+                    wrapper.style.width = `${size}px`;
+                    wrapper.style.height = `${size * 1.15}px`;
+                    wrapper.style.filter = `blur(${blurPx.toFixed(2)}px)`;
+                    wrapper.style.setProperty('--petal-opacity', opacity.toFixed(2));
+                    wrapper.style.setProperty('--drift-x', `${driftX.toFixed(1)}px`);
+                    wrapper.style.animationDuration = `${fallDuration.toFixed(2)}s`;
+                    wrapper.style.animationDelay = `${negativeDelay.toFixed(2)}s`;
+
+                    const rxStart = (Math.random() - 0.5) * 50;
+                    const rxEnd = rxStart + (Math.random() > 0.5 ? 1 : -1) * (40 + Math.random() * 55);
+                    const ryStart = (Math.random() - 0.5) * 60;
+                    const ryMid = -ryStart * (0.6 + Math.random() * 0.5);
+                    const ryEnd = ryStart + (Math.random() > 0.5 ? 1 : -1) * (45 + Math.random() * 60);
+                    const rzStart = (Math.random() - 0.5) * 45;
+                    const rzEnd = rzStart + (Math.random() > 0.5 ? 1 : -1) * (30 + Math.random() * 45);
+
+                    inner.style.setProperty('--sway-amp', `${swayAmp.toFixed(1)}px`);
+                    inner.style.setProperty('--rx-start', `${rxStart.toFixed(1)}deg`);
+                    inner.style.setProperty('--rx-end', `${rxEnd.toFixed(1)}deg`);
+                    inner.style.setProperty('--ry-start', `${ryStart.toFixed(1)}deg`);
+                    inner.style.setProperty('--ry-mid', `${ryMid.toFixed(1)}deg`);
+                    inner.style.setProperty('--ry-end', `${ryEnd.toFixed(1)}deg`);
+                    inner.style.setProperty('--rz-start', `${rzStart.toFixed(1)}deg`);
+                    inner.style.setProperty('--rz-end', `${rzEnd.toFixed(1)}deg`);
+                    inner.style.animationDuration = `${swayDuration.toFixed(2)}s`;
+                    inner.style.animationDelay = `${(-Math.random() * swayDuration).toFixed(2)}s`;
+
+                    const palette = palettes[i % palettes.length];
+                    const pathData = petalPaths[i % petalPaths.length];
+                    const gradId = `petal-grad-${i}`;
+
+                    inner.innerHTML = `
+                        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <radialGradient id="${gradId}" cx="45%" cy="28%" r="72%" fx="40%" fy="20%">
+                                    <stop offset="0%" stop-color="${palette.top}" />
+                                    <stop offset="58%" stop-color="${palette.mid}" />
+                                    <stop offset="100%" stop-color="${palette.base}" />
+                                </radialGradient>
+                            </defs>
+                            <path d="${pathData}" fill="url(#${gradId})" />
+                            <path d="M 50 14 Q 47 52 50 90" fill="none" stroke="${palette.vein}" stroke-width="1.6" stroke-linecap="round" />
+                        </svg>
+                    `;
+
+                    wrapper.appendChild(inner);
+                    petalsLayer.appendChild(wrapper);
+                }
+
+                // Add multiple small, clearly visible "LOVE YOU" texts flowing continuously from top to bottom
+                const loveYouCount = isMobile ? 22 : 36;
+                for (let i = 0; i < loveYouCount; i++) {
+                    const textEl = document.createElement('div');
+                    textEl.className = 'bg-love-you';
+                    textEl.textContent = 'LOVE YOU';
+
+                    const fontSize = isMobile ? (10 + Math.random() * 3.5) : (11.5 + Math.random() * 4.5);
+                    const opacity = 0.48 + Math.random() * 0.28;
+                    const blurPx = Math.random() * 0.5;
+                    const duration = 12 + Math.random() * 10;
+                    const leftPos = 2 + Math.random() * 92;
+                    const driftX = (Math.random() - 0.5) * 65;
+                    const rotStart = (Math.random() - 0.5) * 8;
+                    const rotEnd = rotStart + (Math.random() - 0.5) * 8;
+                    const negativeDelay = -Math.random() * duration;
+
+                    textEl.style.left = `${leftPos.toFixed(1)}vw`;
+                    textEl.style.fontSize = `${fontSize.toFixed(1)}px`;
+                    textEl.style.filter = blurPx > 0.1 ? `blur(${blurPx.toFixed(2)}px)` : 'none';
+                    textEl.style.setProperty('--text-opacity', opacity.toFixed(2));
+                    textEl.style.setProperty('--drift-x', `${driftX.toFixed(1)}px`);
+                    textEl.style.setProperty('--rot-start', `${rotStart.toFixed(1)}deg`);
+                    textEl.style.setProperty('--rot-end', `${rotEnd.toFixed(1)}deg`);
+                    textEl.style.animationDuration = `${duration.toFixed(2)}s`;
+                    textEl.style.animationDelay = `${negativeDelay.toFixed(2)}s`;
+
+                    petalsLayer.appendChild(textEl);
+                }
+            }
+
+            /**
+             * Creates subtle floating ambient light particles in the background
+             */
+            function createAmbientSparkles() {
+                document.querySelectorAll('.sparkle').forEach(s => s.remove());
+                const sparkleCount = window.innerWidth < 600 ? 18 : 30;
+                for (let i = 0; i < sparkleCount; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'sparkle';
+                    const size = 2 + Math.random() * 4;
+                    dot.style.width = `${size}px`;
+                    dot.style.height = `${size}px`;
+                    dot.style.left = `${Math.random() * 100}vw`;
+                    dot.style.animationDuration = `${8 + Math.random() * 12}s`;
+                    dot.style.animationDelay = `${-Math.random() * 15}s`;
+                    stage.appendChild(dot);
+                }
+            }
+
+            /**
+             * Clears all scheduled animation timers
+             */
+            function clearAllTimeouts() {
+                timeouts.forEach(id => clearTimeout(id));
+                timeouts = [];
+            }
+
+            /**
+             * Generates parametric heart curve coordinates
+             */
+            function getHeartPoints(count, scale) {
+                const points = [];
+                for (let i = 0; i < count; i++) {
+                    const t = (Math.PI * 2 * i) / count;
+                    const x = 16 * Math.pow(Math.sin(t), 3);
+                    const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+                    points.push({ x: x * scale, y: y * scale });
+                }
+                return points;
+            }
+
+            /**
+             * Builds and runs the romantic heart formation sequence
+             */
+            function startAnimation() {
+                clearAllTimeouts();
+
+                // Reset container and center name states
+                heartContainer.classList.remove('beating');
+                centerName.classList.remove('visible', 'glow-pulse');
+                replayBtn.classList.remove('show');
+
+                // Remove old LOVE elements
+                const oldWords = heartContainer.querySelectorAll('.love-word');
+                oldWords.forEach(w => w.remove());
+
+                // Responsive sizing calculations
+                const minDim = Math.min(window.innerWidth, window.innerHeight);
+                const isMobile = window.innerWidth < 600;
+                const heartScale = Math.max(8.5, Math.min(minDim * 0.025, 19));
+                const wordCount = isMobile ? 48 : 68;
+                const fontSize = Math.max(9, Math.min(minDim * 0.017, 13));
+
+                // Scale ENAYAT font size proportionally to fit comfortably inside the heart
+                const nameSize = Math.max(20, Math.min(heartScale * 2.25, 44));
+                centerName.style.fontSize = `${nameSize}px`;
+
+                const points = getHeartPoints(wordCount, heartScale);
+                const wordElements = [];
+
+                // Create each floating 'LOVE' element at a scattered initial position
+                points.forEach((pt, idx) => {
+                    const span = document.createElement('span');
+                    span.textContent = WORD_TEXT;
+                    span.className = `love-word love-tone-${(idx % 4) + 1}`;
+                    span.style.fontSize = `${fontSize}px`;
+
+                    // Random outer scatter radius outside the heart
+                    const scatterAngle = Math.random() * Math.PI * 2;
+                    const scatterDist = minDim * (0.48 + Math.random() * 0.45);
+                    const startX = Math.cos(scatterAngle) * scatterDist;
+                    const startY = Math.sin(scatterAngle) * scatterDist;
+                    const startRot = (Math.random() - 0.5) * 160;
+                    const startScale = 0.4 + Math.random() * 0.5;
+
+                    span.style.transform = `translate(-50%, -50%) translate(${startX.toFixed(1)}px, ${startY.toFixed(1)}px) rotate(${startRot.toFixed(1)}deg) scale(${startScale.toFixed(2)})`;
+                    span.style.opacity = '0';
+
+                    heartContainer.appendChild(span);
+                    wordElements.push({ el: span, target: pt, index: idx });
+                });
+
+                // Trigger reflow so initial transforms apply cleanly
+                void heartContainer.offsetWidth;
+
+                // Staggered float-in toward target heart coordinates
+                wordElements.forEach(({ el, target, index }) => {
+                    const delay = 80 + index * 22;
+                    const tid = setTimeout(() => {
+                        const subtleTilt = Math.sin(index * 0.6) * 10;
+                        el.style.opacity = '1';
+                        el.style.transform = `translate(-50%, -50%) translate(${target.x.toFixed(1)}px, ${target.y.toFixed(1)}px) rotate(${subtleTilt.toFixed(1)}deg) scale(1)`;
+                    }, delay);
+                    timeouts.push(tid);
+                });
+
+                const totalGatherTime = 80 + wordCount * 22 + 1900;
+
+                // Reveal 'ENAYAT' in the center once the heart takes shape
+                const revealId = setTimeout(() => {
+                    centerName.classList.add('visible');
+                }, totalGatherTime);
+                timeouts.push(revealId);
+
+                // Start gentle heartbeat and name glow pulse
+                const beatId = setTimeout(() => {
+                    heartContainer.classList.add('beating');
+                    centerName.classList.add('glow-pulse');
+                    replayBtn.classList.add('show');
+                }, totalGatherTime + 1500);
+                timeouts.push(beatId);
+            }
+
+            // Handle window resize gracefully
+            let resizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    createRosePetals();
+                    startAnimation();
+                }, 300);
+            });
+
+            // Replay button listener
+            replayBtn.addEventListener('click', startAnimation);
+
+            // Initialize rose petals, ambient particles, and start animation on load
+            window.addEventListener('load', () => {
+                createRosePetals();
+                createAmbientSparkles();
+                startAnimation();
+            });
+        })();
+    </script>
+</body>
+</html>
